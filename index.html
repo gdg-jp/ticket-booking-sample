@@ -1,128 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>席予約 (WebMCP 実装済み)</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <header class="app-header">
-    <h1 id="event-name">席予約</h1>
-    <div class="status-bar">
-      <span class="status-item">
-        <span class="status-dot" id="api-status-dot" aria-hidden="true"></span>
-        <span>API: <span id="api-status">未接続</span></span>
-      </span>
-      <span class="status-item">
-        <span class="status-dot" id="stream-status-dot" aria-hidden="true"></span>
-        <span>リアルタイム: <span id="stream-status">未接続</span></span>
-      </span>
-    </div>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>席予約 WebMCP ハンズオン</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1 id="event-name">席予約</h1>
 
-  <main class="app-main">
-    <!-- 参加者 ID 入力 -->
-    <section class="panel" id="identity-panel" aria-label="参加者ID">
-      <h2>1. 参加者IDを入力</h2>
-      <p class="hint">英数字、ハイフン、アンダースコアのみ (64文字以内)</p>
-      <form id="identity-form" class="identity-form">
-        <label for="participant-id-input" class="visually-hidden">参加者ID</label>
-        <input
-          type="text"
-          id="participant-id-input"
-          name="participantId"
-          placeholder="team-01"
-          autocomplete="off"
-          maxlength="64"
-          required
-        />
-        <button type="submit" class="primary-button">参加する</button>
-      </form>
-      <p class="identity-current" id="identity-current" hidden>
-        現在の参加者ID: <strong id="identity-current-value"></strong>
-        <button type="button" id="identity-clear-button" class="link-button">変更する</button>
-      </p>
-    </section>
+      <section>
+        <h2>予約する</h2>
+        <form
+          action="http://localhost:8787/api/reservations"
+          method="post"
+          toolname="reserve_seat"
+          tooldescription="参加者IDと席番号を指定して席を予約する。"
+        >
+          <label>
+            参加者ID
+            <input
+              id="participant-id"
+              name="participantId"
+              required
+              pattern="[A-Za-z0-9_-]{1,64}"
+              toolparamdescription="予約する参加者のID。"
+            />
+          </label>
+          <label>
+            席番号
+            <input
+              name="seatId"
+              required
+              pattern="[A-J]-([1-9]|10)"
+              placeholder="A-5"
+              toolparamdescription="予約する席のID。例: A-5。"
+            />
+          </label>
+          <input type="hidden" name="source" value="webmcp" />
+          <button type="submit">予約する</button>
+        </form>
+      </section>
 
-    <!-- 予約状況 -->
-    <section class="panel" id="my-reservation-panel" aria-label="自分の予約">
-      <h2>2. 自分の予約</h2>
-      <div id="my-reservation-view">
-        <p class="muted">まだ予約していません。</p>
-      </div>
-      <button type="button" id="cancel-button" class="danger-button" hidden>予約を解除する</button>
-    </section>
+      <section>
+        <h2>自分の予約</h2>
+        <p id="my-reservation">参加者IDを入力してください。</p>
+        <button id="cancel-button" type="button" hidden>予約を解除する</button>
+      </section>
 
-    <!-- サマリー -->
-    <section class="panel" id="summary-panel" aria-label="席のサマリー">
-      <h2>3. 席の状況</h2>
-      <ul class="summary-list">
-        <li><span class="summary-label">合計</span><span id="summary-total">-</span></li>
-        <li><span class="summary-label">空席</span><span id="summary-available">-</span></li>
-        <li><span class="summary-label">予約済</span><span id="summary-reserved">-</span></li>
-        <li><span class="summary-label">使用禁止</span><span id="summary-disabled">-</span></li>
-      </ul>
-    </section>
+      <section>
+        <h2>席の状況</h2>
+        <p id="summary">読み込み中...</p>
+        <table>
+          <thead><tr><th>席</th><th>状態</th></tr></thead>
+          <tbody id="seat-list"></tbody>
+        </table>
+      </section>
 
-    <!-- 席番号を直接指定して予約するフォーム (WebMCP 宣言型 tool: reserve_seat) -->
-    <section class="panel" aria-label="席番号を指定して予約">
-      <h2>4. 席番号を指定して予約</h2>
-      <p class="hint">クリックの代わりに、席番号 (例: A-5) を直接入力しても予約できます。</p>
-      <form
-        id="declarative-reserve-form"
-        class="declarative-form"
-        action="http://localhost:8787/api/reservations"
-        method="post"
-        toolname="reserve_seat"
-        tooldescription="指定した席を予約する。1参加者につき1席のみ。事前に set_participant_id で参加者IDを設定しておく必要がある。"
-      >
-        <label class="declarative-form-label">
-          席番号
-          <input
-            name="seatId"
-            type="text"
-            placeholder="A-5"
-            autocomplete="off"
-            pattern="[A-J]-([1-9]|10)"
-            required
-            toolparamdescription="予約する席のID。形式は '<行>-<番号>'。行は A から J、番号は 1 から 10 (例: A-5, B-10)。"
-          />
-        </label>
-        <input type="hidden" name="source" value="webmcp" />
-        <button type="submit" class="primary-button">予約する</button>
-      </form>
-    </section>
+      <p id="error" role="alert"></p>
+    </main>
 
-    <!-- 座席表 -->
-    <section class="panel seat-panel" aria-label="座席表">
-      <div class="stage" aria-hidden="true">STAGE</div>
-      <div class="seat-grid" id="seat-grid" role="grid" aria-label="座席表"></div>
-
-      <div class="legend">
-        <span class="legend-item"><span class="seat-sample legend-available">◯</span>空席</span>
-        <span class="legend-item"><span class="seat-sample legend-reserved">×</span>予約済</span>
-        <span class="legend-item"><span class="seat-sample legend-mine">★</span>自分の予約</span>
-        <span class="legend-item"><span class="seat-sample legend-disabled">−</span>使用禁止</span>
-        <span class="legend-item"><span class="seat-sample legend-selected">▣</span>選択中</span>
-      </div>
-
-      <div class="reserve-action">
-        <span id="selected-info" class="muted">席を選んでください</span>
-        <button type="button" id="reserve-button" class="primary-button" disabled>選択した席を予約</button>
-      </div>
-    </section>
-
-    <!-- メッセージ表示 -->
-    <div id="message-area" class="message-area" role="status" aria-live="polite"></div>
-  </main>
-
-  <footer class="app-footer">
-    <p>Seat Reservation Handson</p>
-  </footer>
-
-  <script src="./app.js"></script>
-  <!-- WebMCP 統合スクリプト (Antigravity 等の MCP 対応エージェント向け) -->
-  <script src="./webmcp.js"></script>
-</body>
+    <script src="./app.js"></script>
+    <script src="./webmcp.js"></script>
+  </body>
 </html>
