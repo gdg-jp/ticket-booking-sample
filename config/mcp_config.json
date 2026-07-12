@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "webmcp-bridge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "webmcp-bridge-mcp"
+      ]
+    }
+  }
+}
