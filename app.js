@@ -1,9 +1,37 @@
 // 席予約画面で使う最小限の API と描画処理
 
 const API_BASE_URL = "https://api.webmcp.gdgs.jp";
+const PARTICIPANT_COOKIE_NAME = "participantId";
 
 function participantId() {
-  return document.querySelector("#participant-id").value.trim();
+  const prefix = `${PARTICIPANT_COOKIE_NAME}=`;
+  const cookie = document.cookie.split("; ").find((item) => item.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : "";
+}
+
+function saveParticipantId(value) {
+  document.cookie =
+    `${PARTICIPANT_COOKIE_NAME}=${encodeURIComponent(value)}; Path=/; SameSite=Lax`;
+}
+
+function requireParticipantId() {
+  const value = participantId();
+  if (!value) {
+    throw new Error("先にログインしてください。");
+  }
+  return value;
+}
+
+function renderLoginStatus() {
+  const value = participantId();
+  document.querySelector("#login-status").textContent = value
+    ? `ログイン中: ${value}`
+    : "ログインしていません。";
+
+  const input = document.querySelector("#participant-id");
+  if (value && !input.value) {
+    input.value = value;
+  }
 }
 
 function seatIdInput() {
@@ -105,12 +133,25 @@ async function getSeats() {
   return apiFetch("/api/seats");
 }
 
-async function getMyReservation(participantId) {
-  return apiFetch("/api/reservations/me", { participantId });
+async function reserveSeat(seatId) {
+  return apiFetch("/api/reservations", {
+    method: "POST",
+    participantId: requireParticipantId(),
+    body: { seatId, source: "webmcp" },
+  });
 }
 
-async function cancelReservation(participantId) {
-  return apiFetch("/api/reservations/me", { method: "DELETE", participantId });
+async function getMyReservation() {
+  return apiFetch("/api/reservations/me", {
+    participantId: requireParticipantId(),
+  });
+}
+
+async function cancelReservation() {
+  return apiFetch("/api/reservations/me", {
+    method: "DELETE",
+    participantId: requireParticipantId(),
+  });
 }
 
 async function render() {
@@ -135,13 +176,13 @@ async function renderMyReservation() {
   const cancelButton = document.querySelector("#cancel-button");
 
   if (!participantId()) {
-    output.textContent = "参加者IDを入力してください。";
+    output.textContent = "先にログインしてください。";
     cancelButton.hidden = true;
     return;
   }
 
   try {
-    const data = await getMyReservation(participantId());
+    const data = await getMyReservation();
     const reservation = data.reservation;
     output.textContent = reservation ? `予約中: ${reservation.seatId}` : "予約はありません。";
     cancelButton.hidden = !reservation;
@@ -151,12 +192,50 @@ async function renderMyReservation() {
   }
 }
 
-document.querySelector("#participant-id").addEventListener("change", renderMyReservation);
+document.querySelector("#login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const input = document.querySelector("#participant-id");
+  const value = input.value.trim();
+
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(value)) {
+    document.querySelector("#error").textContent = "参加者IDの形式が正しくありません。";
+    return;
+  }
+
+  saveParticipantId(value);
+  document.querySelector("#error").textContent = "";
+  renderLoginStatus();
+  await renderMyReservation();
+});
+
+document.querySelector("#reservation-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const task = (async () => {
+    try {
+      const data = await reserveSeat(seatIdInput().value.trim());
+      document.querySelector("#error").textContent = "";
+      await render();
+      await renderMyReservation();
+      return data;
+    } catch (error) {
+      document.querySelector("#error").textContent = error.message;
+      throw error;
+    }
+  })();
+
+  if (event.agentInvoked && typeof event.respondWith === "function") {
+    event.respondWith(task);
+  } else {
+    task.catch(() => {});
+  }
+});
+
 seatIdInput().addEventListener("input", updateSelectedSeat);
 
 document.querySelector("#cancel-button").addEventListener("click", async () => {
   try {
-    await cancelReservation(participantId());
+    await cancelReservation();
     await render();
     await renderMyReservation();
   } catch (error) {
@@ -164,5 +243,6 @@ document.querySelector("#cancel-button").addEventListener("click", async () => {
   }
 });
 
+renderLoginStatus();
 render();
 renderMyReservation();

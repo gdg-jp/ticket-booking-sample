@@ -10,47 +10,57 @@
     <main>
       <h1 id="event-name">席予約</h1>
 
-      <section>
-        <h2>予約する</h2>
-        <form
-          action="https://api.webmcp.gdgs.jp/api/reservations"
-          method="post"
-          toolname="reserve_seat"
-          tooldescription="参加者IDと席番号を指定して席を予約する。"
-          toolautosubmit
-        >
-          <label>
-            参加者ID
-            <input
-              id="participant-id"
-              name="participantId"
-              required
-              pattern="[A-Za-z0-9_\-]{1,64}"
-              toolparamdescription="予約する参加者のID。"
-            />
-          </label>
-          <label>
-            席番号
-            <input
-              name="seatId"
-              required
-              pattern="[A-J]-([1-9]|10)"
-              placeholder="A-5"
-              toolparamdescription="予約する席のID。例: A-5。"
-            />
-          </label>
-          <input type="hidden" name="source" value="webmcp" />
-          <button type="submit">予約する</button>
-        </form>
-      </section>
+      <div class="booking-actions">
+        <section class="login-section">
+          <h2>ログイン</h2>
+          <form id="login-form">
+            <label>
+              参加者ID
+              <input
+                id="participant-id"
+                name="participantId"
+                required
+                pattern="[A-Za-z0-9_\-]{1,64}"
+              />
+            </label>
+            <button type="submit">ログイン</button>
+          </form>
+          <p id="login-status">ログインしていません。</p>
+        </section>
 
-      <section>
-        <h2>自分の予約</h2>
-        <p id="my-reservation">参加者IDを入力してください。</p>
-        <button id="cancel-button" type="button" hidden>予約を解除する</button>
-      </section>
+        <section class="reservation-section">
+          <h2>予約する</h2>
+          <form
+            id="reservation-form"
+            action="https://api.webmcp.gdgs.jp/api/reservations"
+            method="post"
+            toolname="reserve_seat"
+            tooldescription="ログイン中の参加者として、席番号を指定して予約する。"
+            toolautosubmit
+          >
+            <label>
+              席番号
+              <input
+                name="seatId"
+                required
+                pattern="[A-J]-([1-9]|10)"
+                placeholder="A-5"
+                toolparamdescription="予約する席のID。例: A-5。"
+              />
+            </label>
+            <input type="hidden" name="source" value="webmcp" />
+            <button type="submit">予約する</button>
+          </form>
+        </section>
 
-      <section>
+        <section class="my-reservation-section">
+          <h2>自分の予約</h2>
+          <p id="my-reservation">先にログインしてください。</p>
+          <button id="cancel-button" type="button" hidden>予約を解除する</button>
+        </section>
+      </div>
+
+      <section class="seat-status-section">
         <h2>席の状況</h2>
         <p id="summary">読み込み中...</p>
         <p class="hint">空席をクリックすると、予約フォームの席番号に入力されます。</p>

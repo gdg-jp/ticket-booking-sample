@@ -48,43 +48,31 @@ async function registerImperativeTools() {
   await document.modelContext.registerTool({
     name: "get_my_reservation",
     title: "My Reservation",
-    description: "参加者IDを指定して、その参加者の現在の予約を確認する。",
+    description: "ログイン中の参加者の現在の予約を確認する。",
     inputSchema: {
       type: "object",
-      properties: {
-        participantId: {
-          type: "string",
-          description: "予約状況を確認する参加者ID。",
-        },
-      },
-      required: ["participantId"],
+      properties: {},
       additionalProperties: false,
     },
     annotations: {
       readOnlyHint: true,
     },
-    execute: async ({ participantId }) => {
-      return getMyReservation(participantId);
+    execute: async () => {
+      return getMyReservation();
     },
   });
 
   await document.modelContext.registerTool({
     name: "cancel_reservation",
     title: "Cancel Reservation",
-    description: "参加者IDを指定して、その参加者の予約を解除する。",
+    description: "ログイン中の参加者の予約を解除する。",
     inputSchema: {
       type: "object",
-      properties: {
-        participantId: {
-          type: "string",
-          description: "予約時に使用した参加者ID。",
-        },
-      },
-      required: ["participantId"],
+      properties: {},
       additionalProperties: false,
     },
-    execute: async ({ participantId }) => {
-      return cancelReservation(participantId);
+    execute: async () => {
+      return cancelReservation();
     },
   });
 
