@@ -1,6 +1,6 @@
 // 席予約画面で使う最小限の API と描画処理
 
-const API_BASE_URL = "http://localhost:8787";
+const API_BASE_URL = "https://api.webmcp.gdgs.jp";
 
 function participantId() {
   return document.querySelector("#participant-id").value.trim();
@@ -77,11 +77,11 @@ function renderSeatMap(seats) {
   updateSelectedSeat();
 }
 
-async function apiFetch(path, options = {}) {
+async function apiFetch(path, { participantId, ...options } = {}) {
   const headers = { Accept: "application/json", ...options.headers };
 
-  if (participantId()) {
-    headers["X-Participant-ID"] = participantId();
+  if (participantId) {
+    headers["X-Participant-ID"] = participantId;
   }
   if (options.body) {
     headers["Content-Type"] = "application/json";
@@ -105,12 +105,12 @@ async function getSeats() {
   return apiFetch("/api/seats");
 }
 
-async function getMyReservation() {
-  return apiFetch("/api/reservations/me");
+async function getMyReservation(participantId) {
+  return apiFetch("/api/reservations/me", { participantId });
 }
 
-async function cancelReservation() {
-  return apiFetch("/api/reservations/me", { method: "DELETE" });
+async function cancelReservation(participantId) {
+  return apiFetch("/api/reservations/me", { method: "DELETE", participantId });
 }
 
 async function render() {
@@ -141,7 +141,7 @@ async function renderMyReservation() {
   }
 
   try {
-    const data = await getMyReservation();
+    const data = await getMyReservation(participantId());
     const reservation = data.reservation;
     output.textContent = reservation ? `予約中: ${reservation.seatId}` : "予約はありません。";
     cancelButton.hidden = !reservation;
@@ -156,7 +156,7 @@ seatIdInput().addEventListener("input", updateSelectedSeat);
 
 document.querySelector("#cancel-button").addEventListener("click", async () => {
   try {
-    await cancelReservation();
+    await cancelReservation(participantId());
     await render();
     await renderMyReservation();
   } catch (error) {
