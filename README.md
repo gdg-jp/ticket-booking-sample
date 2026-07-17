@@ -27,7 +27,7 @@
 ## 起動
 
 ```bash
-python3 -m http.server 8000
+npx serve -p 8080
 ```
 
 API は既定で `https://api.webmcp.gdgs.jp` を使用します。変更する場合は、`app.js` の
